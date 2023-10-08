@@ -1,6 +1,10 @@
+require('dotenv').config();
 const puppeteer = require('puppeteer');
 
-const SAMPLE_SIZE = 500;
+const Split = require('./server/split.js');
+const splitClient = Split.getInstance().client;
+
+const SAMPLE_SIZE = 200;
 
 // https://fdalvi.github.io/blog/2018-02-05-puppeteer-network-throttle/
 const NETWORK_CONDITIONS = {
@@ -27,6 +31,7 @@ const NETWORK_CONDITIONS = {
   }
 };
 
+
 (async () => {
   console.log('Navigation script');
 
@@ -41,7 +46,13 @@ const NETWORK_CONDITIONS = {
 
     // Emulate network conditions and disable cache to simulate new users
     await page.setCacheEnabled(false);
-    await page.emulateNetworkConditions(NETWORK_CONDITIONS.Good3G);
+
+    // Evaluate Split flag to determine what the emulated network conditions should be for this user
+    const networkSpeed = splitClient.getTreatment(id, process.env.FEATURE_FLAG_SPEED_NAME);
+
+    (networkSpeed in NETWORK_CONDITIONS) ? 
+      await page.emulateNetworkConditions(NETWORK_CONDITIONS[networkSpeed]) : 
+      await page.emulateNetworkConditions(NETWORK_CONDITIONS.Good3G);
 
     // Navigate to URL
     await page.goto(`http://localhost:3000/?id=${id}`);
