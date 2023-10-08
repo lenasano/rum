@@ -13,6 +13,16 @@
       w.addEventListener('unhandledrejection', g.l2);
     }(window))
   </script>
+  <script>
+    window.addEventListener('load', function () {
+      let imageSize = new URLSearchParams(window.location.search).get('img');
+
+      // if the query parameter is not one of the the imgur size modifiers, then don't use it
+      if( ! ['b', 's', 't', 'm', 'l', 'h'].includes(imageSize) ) imageSize = '';
+
+      document.getElementById('street_img').src = "https://i.imgur.com/q9b5x97" + imageSize + ".png";
+    });
+  </script>
 </head>
 
 <body>
@@ -36,7 +46,7 @@
     Pharetra convallis posuere morbi leo urna molestie. Duis ultricies lacus sed turpis tincidunt id aliquet. Bibendum
     enim facilisis gravida neque. Gravida quis blandit turpis cursus in hac habitasse platea.
   </p>
-  <img src="https://i.imgur.com/q9b5x97l.png" style="max-height: 400px;" />
+  <img id="street_img" />
 
   <!-- imgur embed widget -->
   <blockquote class="imgur-embed-pub" lang="en" data-id="a/8aOpHV6">
