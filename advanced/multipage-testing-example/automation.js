@@ -4,7 +4,7 @@ const puppeteer = require('puppeteer');
 const Split = require('./server/split.js');
 const splitClient = Split.getInstance().client;
 
-const SAMPLE_SIZE = 200;
+const SAMPLE_SIZE = 500;
 
 // https://fdalvi.github.io/blog/2018-02-05-puppeteer-network-throttle/
 const NETWORK_CONDITIONS = {
@@ -62,7 +62,16 @@ const NETWORK_CONDITIONS = {
 
     // Wait some time
     await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Switch to a new tab so that the Web Vitals Interaction to Next Paint (INP)
+    // and Cumulative Layout Shift (CLS) measurements will be sent
+    await page.goto('about:blank');
+
+    await page.close();
   }
+
+  // Wait some time
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   // Close browser
   await browser.close();
