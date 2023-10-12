@@ -14,13 +14,13 @@ app.use('/off', express.static(path.join(__dirname, '..', 'dist', 'off')));
 app.use('/', (req, res, next) => {
   if (req.query.id) {
 
-    const treatment = splitClient.getTreatment(req.query.id, process.env.FEATURE_FLAG_ASYNC_NAME);
-    console.log('serving treatment ' + treatment);
+    const optimizeAsync = splitClient.getTreatment(req.query.id, process.env.FEATURE_FLAG_ASYNC_NAME);
+    const imageSize = splitClient.getTreatment(req.query.id, process.env.FEATURE_IMAGE_SIZE_NAME);
 
-    if (treatment === 'on') {
-      return res.redirect('/on' + req.url)
+    if (optimizeAsync === 'on') {
+      return res.redirect('/on' + req.url + '&img=' + imageSize)
     } else {
-      return res.redirect('/off' + req.url);
+      return res.redirect('/off' + req.url + '&img=' + imageSize);
     }
   }
 
