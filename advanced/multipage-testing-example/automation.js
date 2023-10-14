@@ -1,10 +1,10 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 
-const Split = require('./server/split.js');
-const splitClient = Split.getInstance().client;
+const getSplitClient = require('./server/split.js');
+const splitClient = getSplitClient();
 
-const SAMPLE_SIZE = 5;
+const SAMPLE_SIZE = 100;
 
 // https://fdalvi.github.io/blog/2018-02-05-puppeteer-network-throttle/
 const NETWORK_CONDITIONS = {
@@ -48,30 +48,24 @@ const NETWORK_CONDITIONS = {
     await page.setCacheEnabled(false);
 
     // Evaluate Split flag to determine what the emulated network conditions should be for this user
-    const networkSpeed = splitClient.getTreatment(id, process.env.FEATURE_FLAG_SPEED_NAME);
+    const networkSpeed = splitClient.getTreatment(id, process.env.FEATURE_FLAG_NETWORK_SPEED);
 
-    (networkSpeed in NETWORK_CONDITIONS) ? 
-      await page.emulateNetworkConditions(NETWORK_CONDITIONS[networkSpeed]) : 
-      await page.emulateNetworkConditions(NETWORK_CONDITIONS.Good3G);
+    await page.emulateNetworkConditions(
+      (networkSpeed in NETWORK_CONDITIONS)
+      ? NETWORK_CONDITIONS[networkSpeed]
+      : NETWORK_CONDITIONS.Good3G
+    );
 
     // Navigate to URL
-    await page.goto(`http://localhost:3000/?id=${id}`);
+    await page.goto(`http://localhost:3000/?id=${id}`, { waitUntil: "networkidle0" });
 
-    // Perform click on an element
-    await page.click('#split_logo');
+    // Close the tab so that the Web Vitals Interaction to Next Paint (INP)
+    // and Cumulative Layout Shift (CLS) measurements will be sent
+    await page.close();
 
     // Wait some time
-    await new Promise(resolve => setTimeout(resolve, 8000));
-
-    // Switch to a new tab so that the Web Vitals Interaction to Next Paint (INP)
-    // and Cumulative Layout Shift (CLS) measurements will be sent
-    await page.goto('about:blank');
-
-    await page.close();
+    //await new Promise(resolve => setTimeout(resolve, 1000));
   }
-
-  // Wait some time
-  await new Promise(resolve => setTimeout(resolve, 1000));
 
   // Close browser
   await browser.close();

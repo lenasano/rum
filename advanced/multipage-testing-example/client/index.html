@@ -14,14 +14,14 @@
     }(window))
   </script>
   <script>
-    window.onload = function () {
+    window.addEventListener('load', function () {
       let imageSize = new URLSearchParams(window.location.search).get('img');
 
       // if the query parameter is not one of the the imgur size modifiers, then don't use it
       if( ! ['b', 's', 't', 'm', 'l', 'h'].includes(imageSize) ) imageSize = '';
 
       document.getElementById('street_img').src = "https://i.imgur.com/q9b5x97" + imageSize + ".png";
-    }
+    });
   </script>
 </head>
 
