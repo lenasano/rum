@@ -4,7 +4,16 @@ const puppeteer = require('puppeteer');
 const getSplitClient = require('./server/split.js');
 const splitClient = getSplitClient();
 
-const SAMPLE_SIZE = 100;
+
+// You can optionally pass the loop variables on the command line, e.g. `npm run automation 0 200`
+let [i, SAMPLE_SIZE] = process.argv.slice(2,4).map(n => parseInt(n, 10));
+// Validate input
+if ( !( i <= SAMPLE_SIZE ) ) {
+  console.log(`Found invalid command line arguments '${i}' and '${SAMPLE_SIZE}'. Using default values instead.`);
+  i = 0;
+  SAMPLE_SIZE = 200;
+}
+
 
 // https://fdalvi.github.io/blog/2018-02-05-puppeteer-network-throttle/
 const NETWORK_CONDITIONS = {
@@ -35,11 +44,11 @@ const NETWORK_CONDITIONS = {
 (async () => {
   console.log('Navigation script');
 
-  // Launch browser
+  // Launch browser, use headful mode to allow Cumulative Layout Shift (CLS) measurment
   const browser = await puppeteer.launch({headless: false, defaultViewport: null});
 
-  for (let id = 0; id < SAMPLE_SIZE; id++) {
-    console.log(`Running ${id} of ${SAMPLE_SIZE}`);
+  for (; i < SAMPLE_SIZE; i++) {
+    console.log(`Running ${i} of ${SAMPLE_SIZE}`);
 
     // Open new page
     const page = await browser.newPage();
@@ -48,7 +57,7 @@ const NETWORK_CONDITIONS = {
     await page.setCacheEnabled(false);
 
     // Evaluate Split flag to determine what the emulated network conditions should be for this user
-    const networkSpeed = splitClient.getTreatment(id, process.env.FEATURE_FLAG_NETWORK_SPEED);
+    const networkSpeed  = splitClient.getTreatment(i, process.env.FEATURE_FLAG_NETWORK_SPEED);
 
     await page.emulateNetworkConditions(
       (networkSpeed in NETWORK_CONDITIONS)
@@ -57,15 +66,20 @@ const NETWORK_CONDITIONS = {
     );
 
     // Navigate to URL
-    await page.goto(`http://localhost:3000/?id=${id}`, { waitUntil: "networkidle0" });
+    await page.goto (`http://localhost:3000/?id=${i}` , {waitUntil: "networkidle0", timeout: 0}); // Disabled timeout to avoid exception being thrown. If, however, the page gets 'stuck', click the refresh button.
 
-    // Close the tab so that the Web Vitals Interaction to Next Paint (INP)
-    // and Cumulative Layout Shift (CLS) measurements will be sent
+    // Click on an element to start measuring First Input Delay (FID) and Interaction to Next Paint (INP) time
+    await page.click('#split_logo');
+
+    // Pause to allow time for the FID and INP measurement
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Close the tab so that the CLS and INP measurements are sent
     await page.close();
-
-    // Wait some time
-    //await new Promise(resolve => setTimeout(resolve, 1000));
   }
+
+  // Pause to allow the browser time to send the last CLS measurement
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   // Close browser
   await browser.close();
